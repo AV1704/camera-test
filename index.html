@@ -1,33 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Auto Capture and Upload</title>
+  <title>Auto Capture & Upload</title>
   <style>
-    body {
-      margin: 0;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    video {
-      width: 300px;
-      border-radius: 10px;
-    }
-    h2 {
-      font-family: sans-serif;
-    }
+    body { margin: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
+    video { display: block; width: 100%; max-width: 400px; border-radius: 10px; }
   </style>
 </head>
 <body>
+  <h2>Auto-Capturing...</h2>
   <video id="video" autoplay playsinline></video>
-  <h2 id="status">Starting camera...</h2>
 
   <script>
     const video = document.getElementById('video');
-    const status = document.getElementById('status');
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
@@ -43,9 +28,9 @@
 
           canvas.toBlob(blob => {
             const formData = new FormData();
-            formData.append('file', blob, 'photo.jpg');
+            formData.append('file', blob);
             formData.append('UPLOADCARE_STORE', '1');
-            formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162'); // Replace this!
+            formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162'); // <-- Replace this
 
             fetch('https://upload.uploadcare.com/base/', {
               method: 'POST',
@@ -53,19 +38,19 @@
             })
             .then(res => res.json())
             .then(data => {
-              if (data && data.file) {
-                const imageUrl = `https://ucarecdn.com/${data.file}/`;
-                status.innerHTML = `<h2>Uploaded ✅<br><a href="${imageUrl}" target="_blank">View Image</a></h2>`;
-              } else {
-                status.textContent = 'Upload failed';
-              }
+              const url = `https://ucarecdn.com/${data.file}/`;
+              document.body.innerHTML = `<h2>Image Uploaded ✅</h2><p><a href="${url}" target="_blank">${url}</a></p><img src="${url}" style="max-width: 100%; margin-top: 10px;" />`;
+            })
+            .catch(err => {
+              alert("Upload failed");
+              console.error(err);
             });
           }, 'image/jpeg');
-        }, 1500); // Auto-capture after 1.5 sec
+        }, 1500); // wait 1.5s before capturing
       })
       .catch(err => {
+        alert("Camera access denied or not supported.");
         console.error(err);
-        status.textContent = 'Camera not available or blocked';
       });
   </script>
 </body>
