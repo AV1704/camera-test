@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Camera Access Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    video {
+      width: 100%;
+      max-width: 480px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📸 Mobile Camera Test</h2>  
+  <button onclick="startCamera()">Start Camera</button>
+  <p id="status">Click the button to start camera.</p>
+  <video id="video" autoplay playsinline muted></video>
+
+    <script>
+      async function startCamera() {
+        const status = document.getElementById("status");
+        const video = document.getElementById("video");
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          status.innerText = "❌ Camera API not supported in this browser.";
+          return;
+        }
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" }  // Try to use back camera
+            },
+            audio: false
+          });
+          video.srcObject = stream;
+          status.innerText = "✅ Camera started successfully.";
+        } catch (err) {
+          console.error(err);
+          status.innerText = "❌ " + err.message;
+        }
+      }
+    </script>
+</body>
+</html>
