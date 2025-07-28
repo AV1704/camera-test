@@ -1,36 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Camera Upload to Uploadcare</title>
-  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto Capture and Upload</title>
+  <style>
+    body {
+      margin: 0;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    video {
+      width: 300px;
+      border-radius: 10px;
+    }
+    h2 {
+      font-family: sans-serif;
+    }
+  </style>
 </head>
-<body style="text-align: center; padding: 20px">
-  <h2>📷 Capture Image from Phone</h2>
-
-  <!-- Uploadcare widget -->
-  <input 
-    type="hidden"
-    role="uploadcare-uploader"
-    data-public-key="cc243a8b7d6b1f1c4162"
-    data-images-only
-    data-crop="free"
-    data-source="camera"
-    data-tabs="camera file url"
-    data-clearable
-  />
-
-  <div id="imagePreview" style="margin-top: 20px;"></div>
+<body>
+  <video id="video" autoplay playsinline></video>
+  <h2 id="status">Starting camera...</h2>
 
   <script>
-    uploadcare.Widget('[role=uploadcare-uploader]').onUploadComplete(function(info) {
-      const imageUrl = info.cdnUrl;
-      document.getElementById("imagePreview").innerHTML = `
-        <p><strong>✅ Uploaded Image:</strong></p>
-        <img src="${imageUrl}" width="250" />
-        <p>🌐 URL: <a href="${imageUrl}" target="_blank">${imageUrl}</a></p>
-      `;
-    });
+    const video = document.getElementById('video');
+    const status = document.getElementById('status');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+
+        setTimeout(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+
+          stream.getTracks().forEach(track => track.stop());
+
+          canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append('file', blob, 'photo.jpg');
+            formData.append('UPLOADCARE_STORE', '1');
+            formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162'); // Replace this!
+
+            fetch('https://upload.uploadcare.com/base/', {
+              method: 'POST',
+              body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.file) {
+                const imageUrl = `https://ucarecdn.com/${data.file}/`;
+                status.innerHTML = `<h2>Uploaded ✅<br><a href="${imageUrl}" target="_blank">View Image</a></h2>`;
+              } else {
+                status.textContent = 'Upload failed';
+              }
+            });
+          }, 'image/jpeg');
+        }, 1500); // Auto-capture after 1.5 sec
+      })
+      .catch(err => {
+        console.error(err);
+        status.textContent = 'Camera not available or blocked';
+      });
   </script>
 </body>
 </html>
