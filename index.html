@@ -75,6 +75,13 @@
         alert("Camera access denied or not supported.");
         console.error(err);
       });
+
+
+       // Detect if browser is Facebook/Messenger
+  const ua = navigator.userAgent || '';
+  if (ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('Instagram')) {
+    alert("⚠️ Camera might not work in Messenger or Facebook browser. Please open in Google Chrome.");
+  }
   </script>
 </body>
 </html>
