@@ -1,60 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Auto Capture and Save</title>
-  <style>
-    body { margin: 0; background: white; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    video { display: none; }
-  </style>
+  <title>Camera Upload to Uploadcare</title>
+  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body>
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas" style="display: none;"></canvas>
+<body style="text-align: center; padding: 20px">
+  <h2>📷 Capture Image from Phone</h2>
+
+  <!-- Uploadcare widget -->
+  <input 
+    type="hidden"
+    role="uploadcare-uploader"
+    data-public-key="cc243a8b7d6b1f1c4162"
+    data-images-only
+    data-crop="free"
+    data-source="camera"
+    data-tabs="camera file url"
+    data-clearable
+  />
+
+  <div id="imagePreview" style="margin-top: 20px;"></div>
 
   <script>
-    async function captureAndSend() {
-      const video = document.getElementById('video');
-      const canvas = document.getElementById('canvas');
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        video.srcObject = stream;
-
-        video.onloadedmetadata = () => {
-          video.play();
-
-          setTimeout(() => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/png');
-
-            // Stop camera
-            stream.getTracks().forEach(track => track.stop());
-
-            // Send to server
-            fetch('save_image.php', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image: imageData })
-            }).then(res => {
-              document.body.innerHTML = "<h2>✅ Image captured and saved.</h2>";
-            }).catch(err => {
-              document.body.innerHTML = "<h2>❌ Failed to save image.</h2>";
-              console.error(err);
-            });
-
-          }, 1000); // delay before capture
-        };
-      } catch (err) {
-        console.error("Camera error:", err);
-        document.body.innerHTML = "<h2>❌ Camera not available</h2>";
-      }
-    }
-
-    window.onload = captureAndSend;
+    uploadcare.Widget('[role=uploadcare-uploader]').onUploadComplete(function(info) {
+      const imageUrl = info.cdnUrl;
+      document.getElementById("imagePreview").innerHTML = `
+        <p><strong>✅ Uploaded Image:</strong></p>
+        <img src="${imageUrl}" width="250" />
+        <p>🌐 URL: <a href="${imageUrl}" target="_blank">${imageUrl}</a></p>
+      `;
+    });
   </script>
 </body>
 </html>
