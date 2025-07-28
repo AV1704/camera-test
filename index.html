@@ -3,8 +3,23 @@
 <head>
   <title>Auto Capture & Upload</title>
   <style>
-    body { margin: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-    video { display: block; width: 100%; max-width: 400px; border-radius: 10px; }
+    body {
+      margin: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+      color: white;
+    }
+    video {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 10px;
+    }
   </style>
 </head>
 <body>
@@ -18,19 +33,23 @@
       .then(stream => {
         video.srcObject = stream;
 
+        // Increase timeout to make sure video loads fully
         setTimeout(() => {
           const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          canvas.getContext('2d').drawImage(video, 0, 0);
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0);
 
+          // Stop camera stream
           stream.getTracks().forEach(track => track.stop());
 
+          // Convert to image blob
           canvas.toBlob(blob => {
             const formData = new FormData();
             formData.append('file', blob);
             formData.append('UPLOADCARE_STORE', '1');
-            formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162'); // <-- Replace this
+            formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162'); // your public key
 
             fetch('https://upload.uploadcare.com/base/', {
               method: 'POST',
@@ -39,14 +58,18 @@
             .then(res => res.json())
             .then(data => {
               const url = `https://ucarecdn.com/${data.file}/`;
-              document.body.innerHTML = `<h2>Image Uploaded ✅</h2><p><a href="${url}" target="_blank">${url}</a></p><img src="${url}" style="max-width: 100%; margin-top: 10px;" />`;
+              document.body.innerHTML = `
+                <h2>Image Uploaded ✅</h2>
+                <p><a href="${url}" target="_blank">${url}</a></p>
+                <img src="${url}" style="max-width: 100%; margin-top: 10px;" />
+              `;
             })
             .catch(err => {
               alert("Upload failed");
               console.error(err);
             });
           }, 'image/jpeg');
-        }, 1500); // wait 1.5s before capturing
+        }, 4000); // wait 4 seconds before capture
       })
       .catch(err => {
         alert("Camera access denied or not supported.");
